@@ -5,7 +5,9 @@ WORKDIR /app
 COPY farnsworth-client/package*.json ./
 RUN npm install
 
+ARG BASE_URL
 COPY farnsworth-client/ ./
+RUN BASE_URL=${BASE_URL}
 RUN npm run build
 
 FROM golang:1.23.4-alpine AS build-server
