@@ -1,0 +1,21 @@
+services:
+  mongodb:
+    image: mongo:latest
+    volumes:
+      - ./db:/data/db # Map to host folder
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      - API_BASE_URL=http://localhost:8080
+      - EXPECTED_USER=DreadPirateRoberts
+      - EXPECTED_KEY=IWishToSailTheSeas
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DB_NAME=farnsworth
+    depends_on:
+      - mongodb
+    volumes:
+      - ./media:/media # Map to host folder

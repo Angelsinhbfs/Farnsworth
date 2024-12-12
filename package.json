@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "@craco/craco": "^7.1.0",
+    "@mui/icons-material": "^5.16.10",
+    "assert": "^2.1.0",
+    "browserify-zlib": "^0.2.0",
+    "constants-browserify": "^1.0.0",
+    "hls.js": "^1.5.17",
+    "http-proxy-middleware": "^3.0.3",
+    "jszip": "^3.10.1",
+    "path-browserify": "^1.0.1",
+    "stream-browserify": "^3.0.0",
+    "util": "^0.12.5"
+  }
+}
