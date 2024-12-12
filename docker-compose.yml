@@ -10,9 +10,9 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
     environment:
-      - API_BASE_URL=http://localhost:8080
-      - EXPECTED_USER=DreadPirateRoberts
-      - EXPECTED_KEY=IWishToSailTheSeas
+      - API_BASE_URL=prodURL
+      - EXPECTED_USER=changeme
+      - EXPECTED_KEY=changeme
       - MONGODB_URI=mongodb://mongodb:27017
       - MONGODB_DB_NAME=farnsworth
     depends_on:
