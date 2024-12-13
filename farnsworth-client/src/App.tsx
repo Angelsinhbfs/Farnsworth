@@ -22,8 +22,7 @@ function App() {
         const token = document.cookie.split('; ').find(row => row.startsWith('auth-token='));
         if (token) {
             setIsLoggedIn(true);
-        }
-    }, []);
+        }    }, []);
 
     const handleLogin = async () => {
         try {

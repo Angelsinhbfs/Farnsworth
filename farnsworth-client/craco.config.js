@@ -1,3 +1,4 @@
+const webpack = require('webpack');
 module.exports = {
     webpack: {
         configure: (webpackConfig) => {
@@ -10,6 +11,12 @@ module.exports = {
                 assert: require.resolve("assert"),
                 constants: require.resolve('constants-browserify'),
             };
+            webpackConfig.plugins = [
+                ...webpackConfig.plugins,
+                new webpack.DefinePlugin({
+                    'process.env.BASE_URL': JSON.stringify(process.env.BASE_URL),
+                }),
+            ];
             return webpackConfig;
         },
     },

@@ -393,9 +393,6 @@ func ServeFFMPEGHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	trimmedPath := strings.TrimPrefix(urlPath, "/ffmpeg/")
 	filePath := filepath.Join("./Server/ffmpeg", trimmedPath)
-	w.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
-	w.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
-
 	http.ServeFile(w, r, filePath)
 }
 

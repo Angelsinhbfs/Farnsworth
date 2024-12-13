@@ -1,4 +1,4 @@
-FROM node:16-alpine AS build-client
+FROM node:23.3-alpine AS build-client
 
 WORKDIR /app
 
@@ -7,6 +7,7 @@ RUN npm install
 
 ARG BASE_URL
 COPY farnsworth-client/ ./
+ENV BASE_URL=${BASE_URL}
 RUN BASE_URL=${BASE_URL}
 RUN npm run build
 

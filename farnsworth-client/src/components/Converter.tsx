@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
-import { toBlobURL, fetchFile } from "@ffmpeg/util";
+import { fetchFile } from "@ffmpeg/util";
 import { Button } from "@mui/material";
 import JSZip from "jszip";
 import {API_BASE_URL} from "../api";
@@ -21,15 +21,7 @@ const MediaConverter: React.FC<MediaConverterProps> = ({ file, onConversionCompl
         ffmpeg.on("log", ({ message }) => {
             if (messageRef.current) messageRef.current.innerHTML = message;
         });
-        if (API_BASE_URL === 'http://localhost:8080'){
-            await ffmpeg.load();
-        } else {
-            await ffmpeg.load({
-                coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
-                wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm"),
-                workerURL: await toBlobURL(`${baseURL}/ffmpeg-core.worker.js`, "text/javascript"),
-            });
-        }
+        await ffmpeg.load();
         setLoaded(true);
     };
 
