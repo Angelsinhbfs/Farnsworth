@@ -1,5 +1,7 @@
 const webpack = require('webpack');
+const cracoServiceWorkerConfig = require("./cracoServiceWorkerConfig");
 module.exports = {
+    plugins: [{ plugin: cracoServiceWorkerConfig }],
     webpack: {
         configure: (webpackConfig) => {
             webpackConfig.resolve.fallback = {

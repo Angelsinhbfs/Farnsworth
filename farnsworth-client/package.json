@@ -18,7 +18,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-scripts": "5.0.1",
-    "webpack": "^5.97.1"
+    "webpack": "^5.97.1",
+    "workbox-webpack-plugin": "^7.3.0"
   },
   "scripts": {
     "start": "craco start",
