@@ -10,7 +10,7 @@ services:
       args:
         - BASE_URL=prodURL
     ports:
-      - "127.0.0.1:8080:8080"
+      - "8080:8080" #probably change this
     environment:
       - EXPECTED_USER=changeme
       - EXPECTED_KEY=changeme
@@ -19,4 +19,6 @@ services:
     depends_on:
       - mongodb
     volumes:
-      - ./media:/media # Map to host folder
+      - ./media:/app/media # keep things where you can see em
+      - ./logs:/app/logs 
+      - ./chunks:/app/chunks #easier to cleanup failed uploads this way
