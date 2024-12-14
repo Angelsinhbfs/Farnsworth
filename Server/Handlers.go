@@ -30,8 +30,14 @@ type MediaIndexEntry struct {
 }
 
 func UploadZipHandler(w http.ResponseWriter, r *http.Request) {
+	err := ensureMediaDirectoriesExist()
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 	// Parse the multipart form
-	err := r.ParseMultipartForm(10 << 20) // 10 MB max memory
+	err = r.ParseMultipartForm(10 << 20) // 10 MB max memory
 	if err != nil {
 		http.Error(w, "Unable to parse form", http.StatusBadRequest)
 		return
@@ -92,6 +98,7 @@ func UploadZipHandler(w http.ResponseWriter, r *http.Request) {
 	// Save the chunk to a temporary file
 	chunkFilePath := filepath.Join(chunkDir, fmt.Sprintf("chunk-%s", chunkIndex))
 	chunkFile, err := os.Create(chunkFilePath)
+	fmt.Printf("Created %v\n", chunkFilePath)
 	if err != nil {
 		fmt.Println(err)
 		http.Error(w, "Unable to create chunk file", http.StatusInternalServerError)
@@ -162,6 +169,28 @@ func UploadZipHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Chunk received")
 	}
 }
+func ensureMediaDirectoriesExist() error {
+	videoDir := "./media/video"
+	audioDir := "./media/audio"
+
+	// Create video directory if it doesn't exist
+	if _, err := os.Stat(videoDir); os.IsNotExist(err) {
+		err = os.MkdirAll(videoDir, os.ModePerm)
+		if err != nil {
+			return fmt.Errorf("unable to create video directory: %v", err)
+		}
+	}
+
+	// Create audio directory if it doesn't exist
+	if _, err := os.Stat(audioDir); os.IsNotExist(err) {
+		err = os.MkdirAll(audioDir, os.ModePerm)
+		if err != nil {
+			return fmt.Errorf("unable to create audio directory: %v", err)
+		}
+	}
+
+	return nil
+}
 
 func countChunks(chunkDir string) (int, error) {
 	files, err := os.ReadDir(chunkDir)
@@ -216,7 +245,6 @@ func DeleteHandler(w http.ResponseWriter, r *http.Request) {
 		if mediaType == "video" {
 			_, err := DBClient.DeleteVideo(CTX, toDelete)
 			if err != nil {
-				fmt.Println(err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
