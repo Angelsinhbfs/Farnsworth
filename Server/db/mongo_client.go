@@ -44,7 +44,7 @@ func (mc *MongoClient) GetVideos(ctx context.Context) (interface{}, error) {
 	filter := bson.M{}
 	cursor, err := collection.Find(ctx, filter)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find user entries: %v", err)
+		return nil, fmt.Errorf("failed to find video entries: %v", err)
 	}
 	defer cursor.Close(ctx)
 	var videos []interface{}
@@ -79,7 +79,7 @@ func (mc *MongoClient) GetAudio(ctx context.Context) (interface{}, error) {
 	filter := bson.M{}
 	cursor, err := collection.Find(ctx, filter)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find user entries: %v", err)
+		return nil, fmt.Errorf("failed to find audio entries: %v", err)
 	}
 	defer cursor.Close(ctx)
 	var videos []interface{}

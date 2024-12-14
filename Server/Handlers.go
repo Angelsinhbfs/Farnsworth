@@ -1,7 +1,6 @@
 package main
 
 import (
-	_ "Farnsworth/Server/db"
 	"archive/zip"
 	"crypto/rand"
 	"crypto/sha256"
@@ -115,17 +114,18 @@ func UploadZipHandler(w http.ResponseWriter, r *http.Request) {
 		// Assemble chunks into a complete file
 		finalFilePath := filepath.Join("./media/", mie.MediaType, mie.Title+".zip")
 		err = assembleChunks(chunkDir, finalFilePath)
+		// Clean up chunk directory
+		os.RemoveAll(chunkDir)
 		if err != nil {
 			http.Error(w, "Error assembling chunks", http.StatusInternalServerError)
 			return
 		}
 
-		// Clean up chunk directory
-		os.RemoveAll(chunkDir)
 		expandedDir := strings.TrimSuffix(finalFilePath, filepath.Ext(finalFilePath))
 		mie.Location = expandedDir
 		// Unzip the file
 		err = unzip(finalFilePath, mie.Location)
+		os.Remove(finalFilePath)
 		if err != nil {
 			http.Error(w, "Error unzipping file", http.StatusInternalServerError)
 			return
