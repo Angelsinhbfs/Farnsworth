@@ -28,33 +28,42 @@ export async function uploadZip(
     dir: string,
     mediaType: string
 ): Promise<void> {
-    const formData = new FormData();
-    formData.append('file', file);
+    const CHUNK_SIZE = 25 * 1024 * 1024; // 5MB per chunk
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
 
     const metadata = {
         Title: title,
         Description: desc,
-        Genre: genre.filter(g=>g!==''),
-        Tags: tags.filter(g=>g!==''),
+        Genre: genre.filter(g => g !== ''),
+        Tags: tags.filter(g => g !== ''),
         Directory: dir,
         MediaType: mediaType
     };
 
-    formData.append('metadata', JSON.stringify(metadata));
+    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+        const start = chunkIndex * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
 
+        const formData = new FormData();
+        formData.append('file', chunk);
+        formData.append('metadata', JSON.stringify(metadata));
+        formData.append('chunkIndex', chunkIndex.toString());
+        formData.append('totalChunks', totalChunks.toString());
 
-    const url = new URL(`${API_BASE_URL}/upload/`);
+        const url = new URL(`${API_BASE_URL}/upload/`);
 
-    const response = await fetch(url.toString(), {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${getAuthToken() || ''}`
-        },
-        body: formData
-    });
+        const response = await fetch(url.toString(), {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${getAuthToken() || ''}`
+            },
+            body: formData
+        });
 
-    if (!response.ok) {
-        throw new Error('Failed to upload ZIP file');
+        if (!response.ok) {
+            throw new Error(`Failed to upload chunk ${chunkIndex + 1} of ${totalChunks}`);
+        }
     }
 }
 
