@@ -8,14 +8,14 @@ interface PlaylistProps {
     setPlaylistUrls: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
-const Playlist: React.FC<PlaylistProps> = ({ initialUrls , setPlaylistUrls}) => {
+const Playlist: React.FC<PlaylistProps> = ({ initialUrls, setPlaylistUrls }) => {
     const [urls, setUrls] = useState<string[]>(initialUrls);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isPlayerVisible, setPlayerVisible] = useState(false);
 
     const boxRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
-        // Save to localStorage whenever the playlist changes
         savePlaylistToLocalStorage(urls);
         setUrls(initialUrls);
         const handleDrop = (e: DragEvent) => {
@@ -25,7 +25,7 @@ const Playlist: React.FC<PlaylistProps> = ({ initialUrls , setPlaylistUrls}) => 
         };
         if (boxRef.current) {
             boxRef.current.addEventListener('drop', handleDrop);
-            boxRef.current.addEventListener('dragover', (e) => e.preventDefault()); // Prevent default to enable drop
+            boxRef.current.addEventListener('dragover', (e) => e.preventDefault());
         }
 
         return () => {
@@ -37,7 +37,7 @@ const Playlist: React.FC<PlaylistProps> = ({ initialUrls , setPlaylistUrls}) => 
     }, [urls, initialUrls]);
 
     const handleDownload = () => {
-        const playlistJson = JSON.stringify(urls, null, 2); // Pretty-printed JSON
+        const playlistJson = JSON.stringify(urls, null, 2);
         const blob = new Blob([playlistJson], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -66,13 +66,14 @@ const Playlist: React.FC<PlaylistProps> = ({ initialUrls , setPlaylistUrls}) => 
         if (currentIndex < urls.length - 1) {
             setCurrentIndex(currentIndex + 1);
         } else {
-            setPlayerVisible(false); // Stop playing if it's the last video
+            setPlayerVisible(false);
         }
     };
-    const inputRef = useRef<HTMLInputElement>(null); // Ref for the file input
+
+    const inputRef = useRef<HTMLInputElement>(null);
 
     const handleLoad = () => {
-        inputRef.current?.click(); // Trigger file input click
+        inputRef.current?.click();
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,7 +81,7 @@ const Playlist: React.FC<PlaylistProps> = ({ initialUrls , setPlaylistUrls}) => 
         loadFile(file);
     };
 
-    function loadFile(file:(File|undefined)){
+    function loadFile(file: File | undefined) {
         if (file && file.type === 'application/json') {
             const reader = new FileReader();
             reader.onload = (event) => {
@@ -100,13 +101,22 @@ const Playlist: React.FC<PlaylistProps> = ({ initialUrls , setPlaylistUrls}) => 
         }
     }
 
+    // Construct the captions URL based on the current video URL
+    const captionsUrl = urls[currentIndex]?.replace('output.m3u8', 'output_vtt.m3u8');
+
     return (
         <Box ref={boxRef}>
-            <HLSPlayer src={urls[currentIndex]} visible={isPlayerVisible} onClose={handleClosePlayer} onEnded={handleVideoEnd}/>
+            <HLSPlayer
+                src={urls[currentIndex]}
+                visible={isPlayerVisible}
+                onClose={handleClosePlayer}
+                onEnded={handleVideoEnd}
+                captionsSrc={captionsUrl} // Pass the captions URL
+            />
             <List>
                 {urls.map((url, index) => (
                     <ListItem key={index} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <ListItemText primary={extractDirectoryName(url)} onClick={() => handleVideoSelect(index)}/>
+                        <ListItemText primary={extractDirectoryName(url)} onClick={() => handleVideoSelect(index)} />
                         <Button variant="outlined" color="secondary" sx={{ marginLeft: 2 }} onClick={() => handleRemove(url)}>Remove</Button>
                     </ListItem>
                 ))}
@@ -117,10 +127,10 @@ const Playlist: React.FC<PlaylistProps> = ({ initialUrls , setPlaylistUrls}) => 
             }}>
                 Clear List
             </Button>
-            <Button variant="outlined" onClick={handleDownload} sx={{ mr: 2 }}> {/* Download button */}
+            <Button variant="outlined" onClick={handleDownload} sx={{ mr: 2 }}>
                 Download Playlist
             </Button>
-            <input  // Hidden file input
+            <input
                 type="file"
                 accept="application/json"
                 ref={inputRef}

@@ -8,10 +8,10 @@ interface HLSPlayerProps {
     visible: boolean;
     onClose: () => void;
     onEnded: () => void;
+    captionsSrc?: string; // Optional prop for captions
 }
 
-
-const HLSPlayer: React.FC<HLSPlayerProps> = ({ src, visible, onClose, onEnded }) => {
+const HLSPlayer: React.FC<HLSPlayerProps> = ({ src, visible, onClose, onEnded, captionsSrc }) => {
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const [isVideoReady, setVideoReady] = useState(false);
 
@@ -30,8 +30,7 @@ const HLSPlayer: React.FC<HLSPlayerProps> = ({ src, visible, onClose, onEnded })
     }, [onEnded]);
 
     useEffect(() => {
-        if(!visible)
-        {
+        if (!visible) {
             return;
         }
         if (!videoRef.current) {
@@ -41,7 +40,7 @@ const HLSPlayer: React.FC<HLSPlayerProps> = ({ src, visible, onClose, onEnded })
 
     }, [src, visible, isVideoReady]);
 
-    function handleVideoOpen():void {
+    function handleVideoOpen(): void {
         if (src && videoRef.current) {
             videoRef.current.addEventListener('ended', onEnded);
             if (Hls.isSupported()) {
@@ -49,11 +48,12 @@ const HLSPlayer: React.FC<HLSPlayerProps> = ({ src, visible, onClose, onEnded })
                     xhrSetup: (xhr) => {
                         xhr.setRequestHeader('Authorization', `Bearer ${API.getAuthToken()}`);
                         console.log('Authorization header set');
-                    },});
+                    },
+                });
                 hls.loadSource(src);
                 hls.attachMedia(videoRef.current);
                 hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    videoRef.current?.play().catch( error => {
+                    videoRef.current?.play().catch(error => {
                         console.error('Error attempting to play:', error);
                     });
                 });
@@ -72,10 +72,20 @@ const HLSPlayer: React.FC<HLSPlayerProps> = ({ src, visible, onClose, onEnded })
     return (
         <Dialog open={visible} onClose={onClose} maxWidth="md" fullWidth>
             <DialogContent>
-                <video ref={(element)=>{
+                <video ref={(element) => {
                     videoRef.current = element;
                     handleVideoOpen();
-                }} controls style={{ width: '100%', height: 'auto' }} />
+                }} controls style={{ width: '100%', height: 'auto' }}>
+                    {captionsSrc && (
+                        <track
+                            kind="subtitles"
+                            src={captionsSrc}
+                            srcLang="en"
+                            label="English"
+                            default
+                        />
+                    )}
+                </video>
             </DialogContent>
         </Dialog>
     );
