@@ -83,6 +83,7 @@ func UploadZipHandler(w http.ResponseWriter, r *http.Request) {
 	if _, err := os.Stat(chunkDir); os.IsNotExist(err) {
 		err = os.MkdirAll(chunkDir, os.ModePerm)
 		if err != nil {
+			fmt.Println(err)
 			http.Error(w, "Unable to create chunk directory", http.StatusInternalServerError)
 			return
 		}
@@ -92,6 +93,7 @@ func UploadZipHandler(w http.ResponseWriter, r *http.Request) {
 	chunkFilePath := filepath.Join(chunkDir, fmt.Sprintf("chunk-%s", chunkIndex))
 	chunkFile, err := os.Create(chunkFilePath)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, "Unable to create chunk file", http.StatusInternalServerError)
 		return
 	}
@@ -99,6 +101,7 @@ func UploadZipHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, err = io.Copy(chunkFile, file)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, "Unable to save chunk", http.StatusInternalServerError)
 		return
 	}
@@ -106,6 +109,7 @@ func UploadZipHandler(w http.ResponseWriter, r *http.Request) {
 	// Check if all chunks are received
 	chunkCount, err := countChunks(chunkDir)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, "Error counting chunks", http.StatusInternalServerError)
 		return
 	}
@@ -117,6 +121,8 @@ func UploadZipHandler(w http.ResponseWriter, r *http.Request) {
 		// Clean up chunk directory
 		os.RemoveAll(chunkDir)
 		if err != nil {
+
+			fmt.Println(err)
 			http.Error(w, "Error assembling chunks", http.StatusInternalServerError)
 			return
 		}
@@ -127,6 +133,8 @@ func UploadZipHandler(w http.ResponseWriter, r *http.Request) {
 		err = unzip(finalFilePath, mie.Location)
 		os.Remove(finalFilePath)
 		if err != nil {
+
+			fmt.Println(err)
 			http.Error(w, "Error unzipping file", http.StatusInternalServerError)
 			return
 		}
@@ -139,6 +147,7 @@ func UploadZipHandler(w http.ResponseWriter, r *http.Request) {
 				_, err = DBClient.AddAudio(CTX, mie)
 			}
 			if err != nil {
+				fmt.Println(err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -207,12 +216,14 @@ func DeleteHandler(w http.ResponseWriter, r *http.Request) {
 		if mediaType == "video" {
 			_, err := DBClient.DeleteVideo(CTX, toDelete)
 			if err != nil {
+				fmt.Println(err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 		} else {
 			_, err := DBClient.DeleteAudio(CTX, toDelete)
 			if err != nil {
+				fmt.Println(err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -221,11 +232,13 @@ func DeleteHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Deleting directory: %v\n", dirPath)    // Log the directory to be deleted
 		err = RemoveContents(dirPath)                      // Call RemoveContents to delete directory contents
 		if err != nil {
+			fmt.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		err = os.Remove(dirPath) // Remove the directory itself
 		if err != nil {
+			fmt.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
