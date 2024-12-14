@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -35,12 +36,14 @@ func UploadZipHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unable to parse form", http.StatusBadRequest)
 		return
 	}
+
 	// Get the metadata from the form data
 	metadata := r.FormValue("metadata")
 	if metadata == "" {
 		http.Error(w, "Metadata not found in form data", http.StatusBadRequest)
 		return
 	}
+
 	// Unmarshal the JSON metadata
 	var mie MediaIndexEntry
 	err = json.Unmarshal([]byte(metadata), &mie)
@@ -53,6 +56,7 @@ func UploadZipHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid media type", http.StatusBadRequest)
 		return
 	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
@@ -66,60 +70,122 @@ func UploadZipHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Create a directory to store the unzipped files if it doesn't exist
-	dir := "./media/" + mie.MediaType + "/" + mie.Title
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		err = os.MkdirAll(dir, os.ModePerm)
-		if err != nil {
-			http.Error(w, "Unable to create directory", http.StatusInternalServerError)
-			return
-		}
-	}
-	mie.Location = dir
-
-	// Create a temporary file to store the uploaded ZIP file
-	tempFile, err := os.CreateTemp("", "upload-*.zip")
-	if err != nil {
-		http.Error(w, "Unable to create temporary file", http.StatusInternalServerError)
-		return
-	}
-	defer os.Remove(tempFile.Name())
-	defer tempFile.Close()
-
-	// Copy the uploaded file to the temporary file
-	_, err = io.Copy(tempFile, file)
-	if err != nil {
-		http.Error(w, "Unable to save file", http.StatusInternalServerError)
+	// Retrieve chunk information
+	chunkIndex := r.FormValue("chunkIndex")
+	totalChunks, err := strconv.Atoi(r.FormValue("totalChunks"))
+	if chunkIndex == "" || err != nil {
+		http.Error(w, "Chunk information missing", http.StatusBadRequest)
 		return
 	}
 
-	// Unzip the file
-	err = unzip(tempFile.Name(), dir)
-	if err != nil {
-		http.Error(w, "Error unzipping file", http.StatusInternalServerError)
-		return
-	}
-
-	// If DB is there add to db
-	if DBConnected {
+	// Create a temporary directory for storing chunks
+	chunkDir := "./chunks/" + mie.Title
+	if _, err := os.Stat(chunkDir); os.IsNotExist(err) {
+		err = os.MkdirAll(chunkDir, os.ModePerm)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		if mie.MediaType == "video" {
-			_, err = DBClient.AddVideo(CTX, mie)
-		} else {
-			_, err = DBClient.AddAudio(CTX, mie)
-		}
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Unable to create chunk directory", http.StatusInternalServerError)
 			return
 		}
 	}
 
-	// Respond with the list of files
-	w.WriteHeader(http.StatusOK)
+	// Save the chunk to a temporary file
+	chunkFilePath := filepath.Join(chunkDir, fmt.Sprintf("chunk-%s", chunkIndex))
+	chunkFile, err := os.Create(chunkFilePath)
+	if err != nil {
+		http.Error(w, "Unable to create chunk file", http.StatusInternalServerError)
+		return
+	}
+	defer chunkFile.Close()
 
+	_, err = io.Copy(chunkFile, file)
+	if err != nil {
+		http.Error(w, "Unable to save chunk", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if all chunks are received
+	chunkCount, err := countChunks(chunkDir)
+	if err != nil {
+		http.Error(w, "Error counting chunks", http.StatusInternalServerError)
+		return
+	}
+
+	if chunkCount == totalChunks {
+		// Assemble chunks into a complete file
+		finalFilePath := filepath.Join("./media/", mie.MediaType, mie.Title+".zip")
+		err = assembleChunks(chunkDir, finalFilePath)
+		if err != nil {
+			http.Error(w, "Error assembling chunks", http.StatusInternalServerError)
+			return
+		}
+
+		// Clean up chunk directory
+		os.RemoveAll(chunkDir)
+
+		// Unzip the file
+		err = unzip(finalFilePath, mie.Location)
+		if err != nil {
+			http.Error(w, "Error unzipping file", http.StatusInternalServerError)
+			return
+		}
+
+		// If DB is there, add to DB
+		if DBConnected {
+			if mie.MediaType == "video" {
+				_, err = DBClient.AddVideo(CTX, mie)
+			} else {
+				_, err = DBClient.AddAudio(CTX, mie)
+			}
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+
+		// Respond with success
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, "Upload complete")
+	} else {
+		// Respond with success for the chunk
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, "Chunk received")
+	}
+}
+
+func countChunks(chunkDir string) (int, error) {
+	files, err := os.ReadDir(chunkDir)
+	if err != nil {
+		return 0, err
+	}
+	return len(files), nil
+}
+
+func assembleChunks(chunkDir, finalFilePath string) error {
+	finalFile, err := os.Create(finalFilePath)
+	if err != nil {
+		return err
+	}
+	defer finalFile.Close()
+
+	files, err := os.ReadDir(chunkDir)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < len(files); i++ {
+		chunkFilePath := filepath.Join(chunkDir, fmt.Sprintf("chunk-%d", i))
+		chunkFile, err := os.Open(chunkFilePath)
+		if err != nil {
+			return err
+		}
+		_, err = io.Copy(finalFile, chunkFile)
+		chunkFile.Close()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func DeleteHandler(w http.ResponseWriter, r *http.Request) {
