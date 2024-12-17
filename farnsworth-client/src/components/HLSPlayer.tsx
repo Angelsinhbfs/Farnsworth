@@ -77,6 +77,9 @@ const HLSPlayer: React.FC<HLSPlayerProps> = ({ src, visible, onClose, onEnded, c
                         console.error('Error attempting to play:', error);
                     });
                 });
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    console.error('HLS.js error:', data);
+                });
             } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
                 console.log('Using native HLS support');
                 videoRef.current.src = src;
@@ -96,15 +99,15 @@ const HLSPlayer: React.FC<HLSPlayerProps> = ({ src, visible, onClose, onEnded, c
                     videoRef.current = element;
                     handleVideoOpen();
                 }} controls style={{ width: '100%', height: 'auto' }}>
-                    {captionsUrl && (
-                        <track
-                            kind="subtitles"
-                            src={captionsUrl}
-                            srcLang="en"
-                            label="English"
-                            default
-                        />
-                    )}
+                    {/*{captionsUrl && (*/}
+                    {/*    <track*/}
+                    {/*        kind="subtitles"*/}
+                    {/*        src={captionsUrl}*/}
+                    {/*        srcLang="en"*/}
+                    {/*        label="English"*/}
+                    {/*        default*/}
+                    {/*    />*/}
+                    {/*)}*/}
                 </video>
             </DialogContent>
         </Dialog>
