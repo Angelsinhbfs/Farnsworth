@@ -12,12 +12,13 @@ import {
     Box,
     Button,
     Typography,
-    TextField,
+    TextField, DialogActions, DialogContent, DialogTitle, Dialog,
 } from '@mui/material';
 import UploadForm from './UploadForm';
 import Playlist from './Playlist';
 import {MediaIndexEntry} from "../MediaIndexEntry";
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit'
 import FolderIcon from '@mui/icons-material/Folder';
 
 interface MediaLibraryProps {
@@ -36,6 +37,8 @@ const MediaLibrary: React.FC<MediaLibraryProps> = ({ handleLogout, addToPlaylist
     const [searchQuery, setSearchQuery] = useState('');  // State for search query
     const [currentDirectory, setCurrentDirectory] = useState('');  // State for search query
     const [filteredEntries, setFilteredEntries] = useState<MediaIndexEntry[]>([]); // State for filtered entries
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    const [entryToDelete, setEntryToDelete] = useState<MediaIndexEntry | null>(null);
 
     const getRowId = (row: MediaIndexEntry) => {
         return row.isDirectory ? row.directory : row.id;
@@ -95,6 +98,31 @@ const MediaLibrary: React.FC<MediaLibraryProps> = ({ handleLogout, addToPlaylist
 
         filterEntries(); // Call filterEntries whenever entries or searchQuery changes
     }, [entries, searchQuery, currentDirectory, mediaType]);
+
+    const handleDeleteEntry = async (title: string, mType: string) => {
+        try {
+            await deleteEntry(title, mType);
+            fetchDirectories().catch(e => console.log(e));
+        } catch (error) {
+            console.error("Error deleting entry:", error);
+            setError('Failed to delete entry');
+        } finally {
+            setShowDeleteConfirmation(false);
+            setEntryToDelete(null);
+        }
+    }
+
+    const handleConfirmDelete = () => {
+        if (entryToDelete) {
+            // @ts-ignore
+            handleDeleteEntry(entryToDelete.title, entryToDelete.mediatype).then(setShowDeleteConfirmation(false));
+        }
+    };
+
+    const handleCancelDelete = () => {
+        setShowDeleteConfirmation(false);
+        setEntryToDelete(null);
+    };
 
     const getDirectoryEntries = (entries: MediaIndexEntry[], currentDirectory: string): MediaIndexEntry[] => {
         const directories = new Set<string>();
@@ -162,17 +190,24 @@ const MediaLibrary: React.FC<MediaLibraryProps> = ({ handleLogout, addToPlaylist
             type: 'actions',
             width: 80,
             getActions: (params) => {
-                if (!params.row.isDirectory
-                ) { // Only show delete button for non-directory entries
+                if (!params.row.isDirectory) {
                     return [
                         <GridActionsCellItem
-                            icon={<DeleteIcon/>}
+                            icon={<EditIcon />} // Edit action
+                            label="Edit"
+                            onClick={() => {
+                                // Implement edit logic here
+                                console.log("Edit entry:", params.row);
+                            }}
+                        />,
+                        <GridActionsCellItem
+                            icon={<DeleteIcon />}
                             label="Delete"
                             onClick={() => {
                                 const sel = entries.find(e => e.id === params.id);
                                 if (sel) {
-                                    // @ts-ignore
-                                    handleDeleteEntry(sel.title, sel.mediatype).then(fetchDirectories).catch(e => console.log(e));
+                                    setEntryToDelete(sel);
+                                    setShowDeleteConfirmation(true);
                                 } else {
                                     console.error("Entry not found for ID:", params.id);
                                 }
@@ -184,17 +219,7 @@ const MediaLibrary: React.FC<MediaLibraryProps> = ({ handleLogout, addToPlaylist
             },
         },
     ];
-    const handleDeleteEntry = async (title: string, mType: string) => {
-        try {
-            await deleteEntry(title, mType) // Call the API function to delete the entry
-            // Update the entries state after successful deletion
-            fetchDirectories().catch(e => console.log(e));
-        } catch (error) {
-            console.error("Error deleting entry:", error);
-            // Handle error, e.g., show an error message to the user
-            setError('Failed to delete entry');
-        }
-    };
+
     const handleRowSelection = (newSelectionModel: GridRowSelectionModel) => {
         setSelectionModel(newSelectionModel);
 
@@ -212,7 +237,7 @@ const MediaLibrary: React.FC<MediaLibraryProps> = ({ handleLogout, addToPlaylist
             setCurrentDirectory(clickedEntry.directory || ''); // Handle potential null directory
         }
     };
-    const paginationModel = {page: 0, pageSize: 5};
+    const paginationModel = {page: 0, pageSize: 100};
     const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(event.target.value);
     };
@@ -275,6 +300,20 @@ const MediaLibrary: React.FC<MediaLibraryProps> = ({ handleLogout, addToPlaylist
                     onRowClick={handleRowClick}
                     sx={{border: 0}}
                 />
+                {showDeleteConfirmation && (
+                    <Dialog open={showDeleteConfirmation} onClose={handleCancelDelete}>
+                        <DialogTitle>Confirm Delete</DialogTitle>
+                        <DialogContent>
+                            Are you sure you want to delete this entry?
+                        </DialogContent>
+                        <DialogActions>
+                            <Button onClick={handleCancelDelete}>Cancel</Button>
+                            <Button onClick={handleConfirmDelete} color="error">
+                                Delete
+                            </Button>
+                        </DialogActions>
+                    </Dialog>
+                )}
             </Box>
             </Box>
         </Box>

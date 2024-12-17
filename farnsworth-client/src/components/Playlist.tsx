@@ -101,8 +101,6 @@ const Playlist: React.FC<PlaylistProps> = ({ initialUrls, setPlaylistUrls }) => 
         }
     }
 
-    // Construct the captions URL based on the current video URL
-    const captionsUrl = urls[currentIndex]?.replace('output.m3u8', 'output_vtt.m3u8');
 
     return (
         <Box ref={boxRef}>
@@ -111,7 +109,6 @@ const Playlist: React.FC<PlaylistProps> = ({ initialUrls, setPlaylistUrls }) => 
                 visible={isPlayerVisible}
                 onClose={handleClosePlayer}
                 onEnded={handleVideoEnd}
-                captionsSrc={captionsUrl} // Pass the captions URL
             />
             <List>
                 {urls.map((url, index) => (

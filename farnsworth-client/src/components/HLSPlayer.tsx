@@ -8,14 +8,12 @@ interface HLSPlayerProps {
     visible: boolean;
     onClose: () => void;
     onEnded: () => void;
-    captionsSrc?: string; // Optional prop for captions
 }
 
 
-const HLSPlayer: React.FC<HLSPlayerProps> = ({ src, visible, onClose, onEnded, captionsSrc }) => {
+const HLSPlayer: React.FC<HLSPlayerProps> = ({ src, visible, onClose, onEnded }) => {
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const [isVideoReady, setVideoReady] = useState(false);
-    const [captionsUrl, setCaptionsUrl] = useState<string | undefined>(undefined);
 
     useEffect(() => {
         if (videoRef.current) {
@@ -42,23 +40,6 @@ const HLSPlayer: React.FC<HLSPlayerProps> = ({ src, visible, onClose, onEnded, c
 
     }, [src, visible, isVideoReady]);
 
-    useEffect(() => {
-        if (captionsSrc) {
-            fetch(captionsSrc, {
-                headers: {
-                    'Authorization': `Bearer ${API.getAuthToken()}`
-                }
-            })
-                .then(response => response.blob())
-                .then(blob => {
-                    const url = URL.createObjectURL(blob);
-                    setCaptionsUrl(url);
-                })
-                .catch(error => {
-                    console.error('Error fetching captions:', error);
-                });
-        }
-    }, [captionsSrc]);
 
     function handleVideoOpen(): void {
         if (src && videoRef.current) {
@@ -99,15 +80,6 @@ const HLSPlayer: React.FC<HLSPlayerProps> = ({ src, visible, onClose, onEnded, c
                     videoRef.current = element;
                     handleVideoOpen();
                 }} controls style={{ width: '100%', height: 'auto' }}>
-                    {/*{captionsUrl && (*/}
-                    {/*    <track*/}
-                    {/*        kind="subtitles"*/}
-                    {/*        src={captionsUrl}*/}
-                    {/*        srcLang="en"*/}
-                    {/*        label="English"*/}
-                    {/*        default*/}
-                    {/*    />*/}
-                    {/*)}*/}
                 </video>
             </DialogContent>
         </Dialog>

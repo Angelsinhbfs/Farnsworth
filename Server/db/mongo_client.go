@@ -119,3 +119,39 @@ func (mc *MongoClient) DeleteAudio(ctx context.Context, title string) (interface
 	}
 	return result, nil
 }
+
+type MediaIndexEntry struct {
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Genre       []string `json:"genre"`
+	Tags        []string `json:"tags"`
+	Directory   string   `json:"directory"`
+	Location    string   `json:"location"`
+	MediaType   string   `json:"mediaType"`
+}
+
+func (mc *MongoClient) UpdateMetaData(ctx context.Context, oldTitle string, newMetadata MediaIndexEntry) (interface{}, error) {
+	collection := mc.client.Database("Media").Collection(newMetadata.MediaType)
+	filter := bson.M{"title": oldTitle}
+
+	// Create an update document excluding the location field
+	update := bson.M{
+		"$set": bson.M{
+			"title":       newMetadata.Title,
+			"description": newMetadata.Description,
+			"genre":       newMetadata.Genre,
+			"tags":        newMetadata.Tags,
+			"directory":   newMetadata.Directory,
+			// "location" is intentionally excluded
+		},
+	}
+
+	// Perform the update operation
+	result, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update metadata: %v", err)
+	}
+
+	// Return the number of documents modified
+	return result.ModifiedCount, nil
+}
